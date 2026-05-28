@@ -36,6 +36,13 @@ Add:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_ADMIN_EMAILS` (your email only, for admin panel access)
+
+Admin panel rules:
+
+- Only emails listed in `NEXT_PUBLIC_ADMIN_EMAILS` can open `/admin`
+- Other users never see the Admin link in navigation
+- Never commit `.env.local` (it is gitignored)
 
 3. Run locally:
 

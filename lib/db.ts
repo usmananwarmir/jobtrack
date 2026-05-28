@@ -183,7 +183,7 @@ export function signUp(name: string, email: string, password: string): Session {
     email: normalizedEmail,
     password,
     name: name.trim(),
-    role: db.users.length === 0 ? "admin" : "user",
+    role: "user",
     createdAt: new Date().toISOString(),
   };
 

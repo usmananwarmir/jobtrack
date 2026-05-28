@@ -4,19 +4,21 @@ import Link from "next/link";
 import { BriefcaseBusiness, LogOut, Menu, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { isAdminSession } from "@/lib/admin";
 import { signOut } from "@/lib/db";
 import { useSession } from "@/lib/hooks";
 import { ThemeToggle } from "./theme-toggle";
 
 const publicLinks = [{ href: "/", label: "Home" }];
 
-const privateLinks = [
+const basePrivateLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/applications", label: "Applications" },
   { href: "/applications/new", label: "New" },
   { href: "/settings/providers", label: "Providers" },
-  { href: "/admin", label: "Admin" },
 ];
+
+const adminLink = { href: "/admin", label: "Admin" };
 
 export function NavBar() {
   const pathname = usePathname();
@@ -24,6 +26,7 @@ export function NavBar() {
   const session = useSession();
   const [open, setOpen] = useState(false);
 
+  const privateLinks = session && isAdminSession(session) ? [...basePrivateLinks, adminLink] : basePrivateLinks;
   const links = session ? [...publicLinks, ...privateLinks] : [...publicLinks, { href: "/auth", label: "Log in" }];
 
   const onLogout = () => {

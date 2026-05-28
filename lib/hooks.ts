@@ -8,7 +8,7 @@ import {
   getUsersSnapshot,
   subscribeStore,
 } from "./db";
-import type { JobApplication, ProviderName } from "./types";
+import type { ProviderName } from "./types";
 
 export function useSession() {
   return useSyncExternalStore(subscribeStore, getSession, () => null);

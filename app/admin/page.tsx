@@ -1,19 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { ProtectedRoute } from "@/components/protected-route";
+import { isAdminSession } from "@/lib/admin";
 import { getApplicationsForUser, getProviderKeys, getUsers } from "@/lib/db";
 import { useSession } from "@/lib/hooks";
 
 export default function AdminPage() {
   const session = useSession();
+  const router = useRouter();
+  const isAdmin = isAdminSession(session);
+
+  useEffect(() => {
+    if (session && !isAdmin) {
+      router.replace("/dashboard");
+    }
+  }, [session, isAdmin, router]);
 
   return (
     <ProtectedRoute>
       <section className="py-10">
-        {!session || session.role !== "admin" ? (
+        {!isAdmin ? (
           <div className="glass rounded-3xl p-8 text-center">
-            <p className="text-muted">Admin access is limited to the first registered account.</p>
+            <p className="text-muted">You do not have access to this page.</p>
             <Link href="/dashboard" className="mt-3 inline-block text-cyan-500">
               Back to dashboard
             </Link>
