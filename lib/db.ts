@@ -1,5 +1,6 @@
 "use client";
 
+import { isReservedAdminEmail } from "./admin";
 import type { AppDatabase, JobApplication, ProviderName, Session, User } from "./types";
 
 const DB_KEY = "jts-db";
@@ -174,6 +175,10 @@ export function signUp(name: string, email: string, password: string): Session {
     throw new Error("Enter name, valid email, and password with at least 6 characters.");
   }
 
+  if (isReservedAdminEmail(normalizedEmail)) {
+    throw new Error("This email is reserved and cannot be used for a regular account.");
+  }
+
   if (db.users.some((user) => user.email === normalizedEmail)) {
     throw new Error("An account with this email already exists.");
   }
@@ -201,8 +206,13 @@ export function signUp(name: string, email: string, password: string): Session {
 }
 
 export function signIn(email: string, password: string): Session {
-  const db = readDb();
   const normalizedEmail = email.trim().toLowerCase();
+
+  if (isReservedAdminEmail(normalizedEmail)) {
+    throw new Error("This email is reserved. Use the admin sign-in page instead.");
+  }
+
+  const db = readDb();
   const user = db.users.find((entry) => entry.email === normalizedEmail && entry.password === password);
 
   if (!user) {
