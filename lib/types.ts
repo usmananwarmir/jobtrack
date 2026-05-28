@@ -19,5 +19,7 @@ export interface JobApplication {
   sourceUrl?: string;
   salary?: string;
   cvVersion?: string;
+  cvText?: string;
   description?: string;
+  createdAt?: string;
 }
