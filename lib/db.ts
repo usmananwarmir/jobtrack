@@ -12,6 +12,24 @@ const EMPTY_DB: AppDatabase = {
   providerKeys: {},
 };
 
+const EMPTY_APPLICATIONS: JobApplication[] = [];
+const EMPTY_PROVIDER_KEYS: Partial<Record<ProviderName, string>> = {};
+const EMPTY_USERS: User[] = [];
+
+type StoreSnapshot = {
+  cacheKey: string;
+  session: Session | null;
+  applications: JobApplication[];
+  users: User[];
+  providerKeys: Partial<Record<ProviderName, string>>;
+};
+
+let snapshotCache: StoreSnapshot | null = null;
+
+function invalidateSnapshotCache() {
+  snapshotCache = null;
+}
+
 function readDb(): AppDatabase {
   if (typeof window === "undefined") {
     return EMPTY_DB;
@@ -31,6 +49,7 @@ function readDb(): AppDatabase {
 function writeDb(db: AppDatabase) {
   try {
     localStorage.setItem(DB_KEY, JSON.stringify(db));
+    invalidateSnapshotCache();
     window.dispatchEvent(new Event("jts-store-updated"));
   } catch {
     throw new Error("Browser storage is blocked. Allow cookies and site data, then try again.");
@@ -68,22 +87,68 @@ function migrateLegacyApplications(userId: string) {
   }
 }
 
-export function getSession(): Session | null {
+function buildSnapshot(): StoreSnapshot {
   if (typeof window === "undefined") {
-    return null;
+    return {
+      cacheKey: "",
+      session: null,
+      applications: EMPTY_APPLICATIONS,
+      users: EMPTY_USERS,
+      providerKeys: EMPTY_PROVIDER_KEYS,
+    };
   }
 
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as Session) : null;
-  } catch {
-    return null;
+  const dbRaw = localStorage.getItem(DB_KEY) ?? "";
+  const sessionRaw = localStorage.getItem(SESSION_KEY) ?? "";
+  const cacheKey = `${dbRaw}::${sessionRaw}`;
+
+  if (snapshotCache?.cacheKey === cacheKey) {
+    return snapshotCache;
   }
+
+  const session = sessionRaw ? (JSON.parse(sessionRaw) as Session) : null;
+  const db = dbRaw ? (JSON.parse(dbRaw) as AppDatabase) : EMPTY_DB;
+
+  const applications = session
+    ? db.applications
+        .filter((app) => app.userId === session.userId)
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    : EMPTY_APPLICATIONS;
+
+  const providerKeys =
+    session && db.providerKeys[session.userId] ? db.providerKeys[session.userId]! : EMPTY_PROVIDER_KEYS;
+
+  snapshotCache = {
+    cacheKey,
+    session,
+    applications,
+    users: db.users,
+    providerKeys,
+  };
+
+  return snapshotCache;
+}
+
+export function getSession(): Session | null {
+  return buildSnapshot().session;
+}
+
+export function getApplicationsSnapshot(): JobApplication[] {
+  return buildSnapshot().applications;
+}
+
+export function getUsersSnapshot(): User[] {
+  return buildSnapshot().users;
+}
+
+export function getProviderKeysSnapshot(): Partial<Record<ProviderName, string>> {
+  return buildSnapshot().providerKeys;
 }
 
 export function setSession(session: Session) {
   try {
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    invalidateSnapshotCache();
     migrateLegacyApplications(session.userId);
     window.dispatchEvent(new Event("jts-store-updated"));
   } catch {
@@ -94,6 +159,7 @@ export function setSession(session: Session) {
 export function clearSession() {
   try {
     localStorage.removeItem(SESSION_KEY);
+    invalidateSnapshotCache();
     window.dispatchEvent(new Event("jts-store-updated"));
   } catch {
     // ignore when storage is unavailable
@@ -187,11 +253,15 @@ export function deleteApplication(userId: string, id: string) {
 }
 
 export function getUsers(): User[] {
-  return readDb().users;
+  return buildSnapshot().users;
 }
 
 export function getProviderKeys(userId: string): Partial<Record<ProviderName, string>> {
-  return readDb().providerKeys[userId] ?? {};
+  const snapshot = buildSnapshot();
+  if (!snapshot.session || snapshot.session.userId !== userId) {
+    return EMPTY_PROVIDER_KEYS;
+  }
+  return snapshot.providerKeys;
 }
 
 export function saveProviderKey(userId: string, provider: ProviderName, apiKey: string) {
@@ -204,7 +274,10 @@ export function saveProviderKey(userId: string, provider: ProviderName, apiKey: 
 }
 
 export function subscribeStore(callback: () => void) {
-  const onUpdate = () => callback();
+  const onUpdate = () => {
+    invalidateSnapshotCache();
+    callback();
+  };
   window.addEventListener("jts-store-updated", onUpdate);
   window.addEventListener("storage", onUpdate);
   return () => {

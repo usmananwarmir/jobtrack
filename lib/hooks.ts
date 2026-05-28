@@ -2,10 +2,10 @@
 
 import { useSyncExternalStore } from "react";
 import {
-  getApplicationsForUser,
-  getProviderKeys,
+  getApplicationsSnapshot,
+  getProviderKeysSnapshot,
   getSession,
-  getUsers,
+  getUsersSnapshot,
   subscribeStore,
 } from "./db";
 import type { JobApplication, ProviderName } from "./types";
@@ -14,28 +14,18 @@ export function useSession() {
   return useSyncExternalStore(subscribeStore, getSession, () => null);
 }
 
-export function useApplications(): JobApplication[] {
-  return useSyncExternalStore(
-    subscribeStore,
-    () => {
-      const session = getSession();
-      return session ? getApplicationsForUser(session.userId) : [];
-    },
-    () => [],
-  );
+export function useApplications() {
+  return useSyncExternalStore(subscribeStore, getApplicationsSnapshot, () => []);
 }
 
 export function useUsers() {
-  return useSyncExternalStore(subscribeStore, getUsers, () => []);
+  return useSyncExternalStore(subscribeStore, getUsersSnapshot, () => []);
 }
 
 export function useProviderKeys(): Partial<Record<ProviderName, string>> {
   return useSyncExternalStore(
     subscribeStore,
-    () => {
-      const session = getSession();
-      return session ? getProviderKeys(session.userId) : {};
-    },
+    getProviderKeysSnapshot,
     (): Partial<Record<ProviderName, string>> => ({}),
   );
 }
