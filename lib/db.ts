@@ -29,8 +29,12 @@ function readDb(): AppDatabase {
 }
 
 function writeDb(db: AppDatabase) {
-  localStorage.setItem(DB_KEY, JSON.stringify(db));
-  window.dispatchEvent(new Event("jts-store-updated"));
+  try {
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+    window.dispatchEvent(new Event("jts-store-updated"));
+  } catch {
+    throw new Error("Browser storage is blocked. Allow cookies and site data, then try again.");
+  }
 }
 
 function migrateLegacyApplications(userId: string) {
@@ -78,14 +82,22 @@ export function getSession(): Session | null {
 }
 
 export function setSession(session: Session) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  migrateLegacyApplications(session.userId);
-  window.dispatchEvent(new Event("jts-store-updated"));
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    migrateLegacyApplications(session.userId);
+    window.dispatchEvent(new Event("jts-store-updated"));
+  } catch {
+    throw new Error("Browser storage is blocked. Allow cookies and site data, then try again.");
+  }
 }
 
 export function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
-  window.dispatchEvent(new Event("jts-store-updated"));
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    window.dispatchEvent(new Event("jts-store-updated"));
+  } catch {
+    // ignore when storage is unavailable
+  }
 }
 
 export function signUp(name: string, email: string, password: string): Session {

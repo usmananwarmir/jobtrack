@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { CinematicBg } from "@/components/cinematic-bg";
+import { AppBackground } from "@/components/app-background";
 import { NavBar } from "@/components/nav-bar";
 
 const geistSans = Geist({
@@ -30,7 +30,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <CinematicBg />
+        <AppBackground />
         <NavBar />
         <main className="mx-auto w-full max-w-7xl px-4 pb-12">{children}</main>
       </body>
